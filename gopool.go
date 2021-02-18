@@ -19,16 +19,16 @@ func NewPool(maxConcurrency int) *GoPool {
 	}
 }
 
-// Add waits for a slot to be available, then calls waitGroup.Add
+// Add immediately declares a task, but wait for a slot to return
 func (gp *GoPool) Add(i int) {
-	gp.sem <- true // take a slot in semaphore channel
 	gp.wg.Add(i)
+	gp.sem <- true // take a slot in semaphore channel
 }
 
 // Done frees a slot
 func (gp *GoPool) Done() {
-	gp.wg.Done()
 	<-gp.sem // free a slot
+	gp.wg.Done()
 }
 
 // Wait can be used to wait for all goroutines to finish
