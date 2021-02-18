@@ -1,37 +1,41 @@
 package gopool
 
-import "sync"
-
-//GoPool provides Add, Done and Wait methods just like sync.WaitGroup
+//GoPool provides Add, Done and Wait methods just like sync.WaitGroup would do
 //On top of that, a max concurrency is applied so that the number of goroutines stays under control
 type GoPool struct {
-	wg  *sync.WaitGroup
-	sem chan bool
+	buffer     chan bool
+	bufferSize int
 }
 
 // NewPool creates a new pool with max concurrency size
 func NewPool(maxConcurrency int) *GoPool {
-	var wg sync.WaitGroup
-	sem := make(chan bool, maxConcurrency)
+	buffer := make(chan bool, maxConcurrency)
 	return &GoPool{
-		wg:  &wg,
-		sem: sem,
+		buffer:     buffer,
+		bufferSize: maxConcurrency,
 	}
 }
 
-// Add immediately declares a task, but wait for a slot to return
-func (gp *GoPool) Add(i int) {
-	gp.wg.Add(i)
-	gp.sem <- true // take a slot in semaphore channel
+// Add declares new tasks
+func (gp *GoPool) Add(n int) {
+	if n < 0 {
+		panic("n cannot be < 0")
+	}
+	for i := 0; i < n; i++ {
+		gp.buffer <- true // take a slot in buffer channel
+	}
 }
 
 // Done frees a slot
 func (gp *GoPool) Done() {
-	<-gp.sem // free a slot
-	gp.wg.Done()
+	<-gp.buffer // read a value from the buffer
 }
 
 // Wait can be used to wait for all goroutines to finish
 func (gp *GoPool) Wait() {
-	gp.wg.Wait()
+	// insert `maxConcurrency` tasks that do nothing, then clear them all
+	for i := 0; i < gp.bufferSize; i++ {
+		gp.Add(1)
+		defer gp.Done()
+	}
 }
