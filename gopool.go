@@ -1,7 +1,8 @@
+//Package gopool provides Add, Done and Wait methods just like sync.WaitGroup would do.
+//On top of that, a max concurrency is applied so that the number of goroutines stays under control
 package gopool
 
-//GoPool provides Add, Done and Wait methods just like sync.WaitGroup would do
-//On top of that, a max concurrency is applied so that the number of goroutines stays under control
+// GoPool describe a concurrency pool
 type GoPool struct {
 	buffer     chan bool
 	bufferSize int
